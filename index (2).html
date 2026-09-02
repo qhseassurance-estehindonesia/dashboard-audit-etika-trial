@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1B4332">
+<title>Dashboard Tindak Lanjut Audit ETIKA — Esteh Indonesia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green-dark:#1B4332;
+  --green-mid:#2D6A4F;
+  --green-soft:#E7F0EA;
+  --cream:#F7F5EF;
+  --card:#FFFFFF;
+  --amber:#C98A3D;
+  --amber-soft:#FBF0DD;
+  --red:#B3382C;
+  --red-soft:#FBE9E6;
+  --charcoal:#26261F;
+  --gray:#8A8A7E;
+  --line:#E7E3D8;
+  --radius:14px;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--cream);color:var(--charcoal);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
+.mono{font-family:'JetBrains Mono',monospace;}
+button{font-family:inherit;cursor:pointer;}
+
+/* Header */
+.topbar{position:sticky;top:0;z-index:20;background:var(--green-dark);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand .leaf{font-size:22px;}
+.brand-text .t1{font-weight:700;font-size:16px;line-height:1.1;}
+.brand-text .t2{font-size:11.5px;color:#B7D3C4;letter-spacing:.02em;}
+.role-toggle{display:flex;background:rgba(255,255,255,.12);border-radius:999px;padding:4px;}
+.role-toggle button{background:transparent;border:none;color:#DDEDE4;padding:8px 16px;border-radius:999px;font-size:13.5px;font-weight:600;transition:.15s;}
+.role-toggle button.active{background:#fff;color:var(--green-dark);}
+.demo-badge{background:var(--amber);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.03em;}
+
+.wrap{max-width:1080px;margin:0 auto;padding:22px 18px 60px;}
+
+/* Stat cards */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 12px;}
+.stat .n{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;}
+.stat .l{font-size:11.5px;color:var(--gray);margin-top:2px;}
+.stat.open .n{color:var(--red);}
+.stat.review .n{color:var(--amber);}
+.stat.done .n{color:var(--green-mid);}
+
+/* Filters */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
+.filters select, .filters input[type=text]{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 12px;font-size:13.5px;font-family:inherit;color:var(--charcoal);}
+.filters input[type=text]{min-width:180px;}
+.pill-filter{display:flex;gap:6px;flex-wrap:wrap;}
+.pill-filter button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:600;color:var(--gray);}
+.pill-filter button.active{background:var(--green-dark);border-color:var(--green-dark);color:#fff;}
+
+/* Finding cards */
+.list{display:flex;flex-direction:column;gap:10px;}
+.finding{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:.12s;}
+.finding:hover{border-color:var(--green-mid);}
+.f-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+.f-id{font-size:11px;color:var(--gray);}
+.f-title{font-weight:600;font-size:14.5px;margin:3px 0 5px;}
+.f-meta{font-size:12px;color:var(--gray);display:flex;gap:10px;flex-wrap:wrap;}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap;}
+.badge.open{background:var(--red-soft);color:var(--red);}
+.badge.review{background:var(--amber-soft);color:var(--amber);}
+.badge.done{background:var(--green-soft);color:var(--green-mid);}
+.badge.rejected{background:var(--red-soft);color:var(--red);}
+.badge.risk-n{background:#E4E1D3;color:var(--charcoal);}
+.badge.risk-s{background:var(--amber);color:#fff;}
+.badge.risk-c{background:var(--red);color:#fff;}
+.badge.risk-vc{background:#5C1008;color:#fff;}
+
+/* stepper (signature element) */
+.stepper{display:flex;align-items:center;gap:4px;margin-top:10px;}
+.stepper .seg{flex:1;height:3px;background:var(--line);border-radius:2px;}
+.stepper .seg.filled{background:var(--green-mid);}
+.stepper .dot{width:9px;height:9px;border-radius:50% 50% 50% 0;transform:rotate(45deg);background:var(--line);flex-shrink:0;}
+.stepper .dot.filled{background:var(--green-mid);}
+.stepper .dot.current{background:var(--amber);}
+
+.empty{text-align:center;padding:50px 20px;color:var(--gray);}
+.empty .big{font-size:32px;margin-bottom:8px;}
+
+/* PIC outlet gate */
+.gate{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+.gate label{font-size:12.5px;color:var(--gray);display:block;margin-bottom:5px;}
+.gate input{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;width:220px;}
+.gate button{background:var(--green-dark);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-weight:600;font-size:13.5px;}
+.pin-wrap{position:relative;display:inline-block;}
+.pin-wrap input{padding-right:38px;}
+.pin-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;padding:4px 6px;font-size:15px;cursor:pointer;color:var(--gray);}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(20,25,20,.5);display:flex;align-items:flex-end;justify-content:center;z-index:50;}
+.modal{background:var(--card);width:100%;max-width:620px;max-height:92vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:22px 20px 30px;}
+@media(min-width:700px){.overlay{align-items:center;}.modal{border-radius:20px;}}
+.modal h2{font-size:18px;margin:0 0 2px;}
+.modal .sub{color:var(--gray);font-size:12.5px;margin-bottom:14px;}
+.close-x{position:sticky;top:0;float:right;background:var(--cream);border:none;border-radius:50%;width:30px;height:30px;font-size:16px;color:var(--gray);}
+.section-label{font-size:11.5px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;}
+.info-grid .k{color:var(--gray);font-size:11.5px;}
+.info-grid .v{font-weight:600;}
+.desc-box{background:var(--cream);border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.5;}
+.freetext{white-space:pre-wrap;}
+.photo-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.photo-row a img, .photo-row .vid{width:90px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--line);}
+.form-field{margin-bottom:12px;}
+.form-field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;}
+.form-field input[type=text], .form-field input[type=date], .form-field textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px;font-family:inherit;}
+.form-field textarea{min-height:80px;resize:vertical;}
+.file-drop{border:1.5px dashed var(--line);border-radius:10px;padding:14px;text-align:center;font-size:12.5px;color:var(--gray);cursor:pointer;}
+.file-drop.filled{border-color:var(--green-mid);color:var(--green-mid);background:var(--green-soft);}
+.btn-primary{background:var(--green-dark);color:#fff;border:none;border-radius:10px;padding:13px;font-weight:700;font-size:14px;width:100%;margin-top:6px;}
+.btn-primary:disabled{opacity:.5;}
+.btn-row{display:flex;gap:8px;margin-top:6px;}
+.btn-row button{flex:1;border-radius:10px;padding:12px;font-weight:700;font-size:13.5px;border:none;}
+.btn-approve{background:var(--green-mid);color:#fff;}
+.btn-reject{background:var(--red-soft);color:var(--red);}
+.msg{font-size:12.5px;padding:9px 12px;border-radius:9px;margin-top:8px;}
+.msg.err{background:var(--red-soft);color:var(--red);}
+.msg.ok{background:var(--green-soft);color:var(--green-mid);}
+.loading-text{text-align:center;color:var(--gray);padding:40px;font-size:13px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <span class="leaf">🍵</span>
+    <div class="brand-text">
+      <div class="t1">Tindak Lanjut Audit ETIKA</div>
+      <div class="t2">Esteh Indonesia · QHSE Assurance</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span id="demoBadge" class="demo-badge" style="display:none;">MODE DEMO</span>
+    <div class="role-toggle">
+      <button id="btnRoleQhse" class="active">Tim QHSE</button>
+      <button id="btnRolePic">PIC Outlet</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="app"></div>
+
+<script>
+/* ============ KONFIGURASI ============
+   1. Deploy Google Apps Script (lihat file Code.gs) sebagai Web App.
+   2. Tempel URL Web App di bawah ini.
+   3. Ubah DEMO_MODE menjadi false.
+*/
+const CONFIG = {
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyr4KkEJViQDGopjo53D8rCH-4mMohrmAbATkwtEvw1zdCGiLqY7KEsrLieMXOvz_0-/exec",
+  DEMO_MODE: false
+};
+
+const STATUS_LABEL = {
+  "Open": {label:"Belum Ditindaklanjuti", cls:"open"},
+  "Diperbaiki": {label:"Menunggu Verifikasi", cls:"review"},
+  "Terverifikasi": {label:"Selesai", cls:"done"},
+  "Ditolak": {label:"Perlu Perbaikan Ulang", cls:"rejected"},
+  "Ditolak_Final": {label:"Ditolak (3x) - Eskalasi Manual", cls:"rejected"}
+};
+const STEP_ORDER = ["Open","Diperbaiki","Terverifikasi"];
+
+const DEMO_DATA = [
+  {ID:"TMN-0001",Nomor_Outlet:"OT-102",Nama_Outlet:"Esteh Margonda",Tanggal_Audit:"2026-08-01",Nama_Auditor:"Rina Kusuma",Kategori_Audit:"Scheduled",Item_Checklist:"3.2 Suhu penyimpanan chiller",Kategori_Temuan:"Food Safety",Tingkat_Risiko:"C",Deskripsi_Temuan:"Suhu chiller tercatat 9°C, melebihi standar maksimal 5°C.",Foto_Temuan_URL:"",Status:"Open",Nama_PIC:"",Tanggal_Perbaikan:"",Keterangan_Perbaikan:"",Foto_Bukti_Perbaikan_URL:"",Video_Bukti_Perbaikan_URL:"",Catatan_QHSE:"",Tanggal_Verifikasi:"",Verifikator:""},
+  {ID:"TMN-0002",Nomor_Outlet:"OT-102",Nama_Outlet:"Esteh Margonda",Tanggal_Audit:"2026-08-01",Nama_Auditor:"Rina Kusuma",Kategori_Audit:"Scheduled",Item_Checklist:"5.1 Seragam & APD staff",Kategori_Temuan:"Brand Standards",Tingkat_Risiko:"N",Deskripsi_Temuan:"2 dari 4 staff tidak menggunakan hairnet saat shift siang.",Foto_Temuan_URL:"",Status:"Diperbaiki",Nama_PIC:"Dewi Anjani",Tanggal_Perbaikan:"2026-08-05",Keterangan_Perbaikan:"Sudah briefing ulang seluruh staff dan menambah stok hairnet di outlet.",Foto_Bukti_Perbaikan_URL:"https://picsum.photos/seed/hairnet/300",Video_Bukti_Perbaikan_URL:"",Catatan_QHSE:"",Tanggal_Verifikasi:"",Verifikator:""},
+  {ID:"TMN-0003",Nomor_Outlet:"OT-045",Nama_Outlet:"Esteh Kemang",Tanggal_Audit:"2026-07-28",Nama_Auditor:"Bagas Prasetyo",Kategori_Audit:"Unscheduled",Item_Checklist:"2.4 Communication book",Kategori_Temuan:"Local Standards",Tingkat_Risiko:"S",Deskripsi_Temuan:"Communication book tidak diisi selama 3 hari terakhir.",Foto_Temuan_URL:"",Status:"Terverifikasi",Nama_PIC:"Yoga Saputra",Tanggal_Perbaikan:"2026-07-30",Keterangan_Perbaikan:"Communication book sudah diisi rutin, ditempel checklist harian di dekat kasir.",Foto_Bukti_Perbaikan_URL:"https://picsum.photos/seed/combook/300",Video_Bukti_Perbaikan_URL:"",Catatan_QHSE:"Sudah dicek saat kunjungan random, sesuai.",Tanggal_Verifikasi:"2026-08-02",Verifikator:"Rina Kusuma"},
+  {ID:"TMN-0004",Nomor_Outlet:"OT-045",Nama_Outlet:"Esteh Kemang",Tanggal_Audit:"2026-07-28",Nama_Auditor:"Bagas Prasetyo",Kategori_Audit:"Unscheduled",Item_Checklist:"1.7 Kebersihan area produksi",Kategori_Temuan:"Food Safety",Tingkat_Risiko:"S",Deskripsi_Temuan:"Ditemukan genangan air di lantai belakang mesin cup sealer.",Foto_Temuan_URL:"",Status:"Ditolak",Nama_PIC:"Yoga Saputra",Tanggal_Perbaikan:"2026-07-29",Keterangan_Perbaikan:"Sudah dipel dan dikeringkan.",Foto_Bukti_Perbaikan_URL:"https://picsum.photos/seed/floor/300",Video_Bukti_Perbaikan_URL:"",Catatan_QHSE:"Foto tidak menunjukkan sumber kebocoran sudah diperbaiki. Mohon cek selang air & upload ulang.",Tanggal_Verifikasi:"2026-08-01",Verifikator:"Bagas Prasetyo"},
+  {ID:"TMN-0005",Nomor_Outlet:"OT-102",Nama_Outlet:"Esteh Margonda",Tanggal_Audit:"2026-08-01",Nama_Auditor:"Rina Kusuma",Kategori_Audit:"Scheduled",Item_Checklist:"4.3 Label tanggal produksi topping",Kategori_Temuan:"Food Safety",Tingkat_Risiko:"N",Deskripsi_Temuan:"3 wadah topping boba tidak berlabel tanggal produksi.",Foto_Temuan_URL:"",Status:"Open",Nama_PIC:"",Tanggal_Perbaikan:"",Keterangan_Perbaikan:"",Foto_Bukti_Perbaikan_URL:"",Video_Bukti_Perbaikan_URL:"",Catatan_QHSE:"",Tanggal_Verifikasi:"",Verifikator:""}
+];
+
+let state = {
+  role: "qhse",
+  data: [],
+  loading: true,
+  loadError: "",
+  outletFilter: "",
+  statusFilter: "all",
+  picOutletInput: "",
+  picOutletActive: "",
+  detailId: null,
+  formMsg: "",
+  qhseUnlocked: false,
+  picUnlocked: false,
+  pinError: ""
+};
+
+function jsonToDate(v){ return v ? String(v).slice(0,10) : ""; }
+
+/**
+ * Rapetin baris kosong berlebih dari teks yang diketik user (misal enter berkali-kali),
+ * maksimal 1 baris kosong di antara paragraf, biar tampilan nggak boros space
+ * tapi paragraf yang beneran dipisah tetap kebawa.
+ */
+function formatText(s){
+  if(!s) return s;
+  return String(s).replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/**
+ * Link Google Drive dari file.getUrl() (…/file/d/FILE_ID/view) itu halaman viewer,
+ * bukan gambar langsung, jadi <img src="..."> gagal load. Fungsi ini extract FILE_ID
+ * dan bikin link thumbnail yang bisa langsung dipakai di <img>. Link asli tetap
+ * dipakai buat <a href> supaya klik gambar tetap buka Drive.
+ */
+function driveThumb(url){
+  if(!url) return url;
+  const m = String(url).match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if(!m) return url;
+  return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w500';
+}
+
+async function loadData(){
+  state.loading = true; render();
+  if(CONFIG.DEMO_MODE || !CONFIG.APPS_SCRIPT_URL || CONFIG.APPS_SCRIPT_URL.indexOf("PASTE_URL")===0){
+    document.getElementById('demoBadge').style.display = 'inline-block';
+    state.data = JSON.parse(JSON.stringify(DEMO_DATA));
+    state.loading = false; render(); return;
+  }
+  try{
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL + "?action=list");
+    const json = await res.json();
+    state.data = json;
+    state.loadError = "";
+  }catch(err){
+    state.loadError = "Gagal memuat data dari Google Sheets. Cek APPS_SCRIPT_URL & koneksi.";
+    state.data = [];
+  }
+  state.loading = false; render();
+}
+
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r = new FileReader();
+    r.onload = ()=>resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+async function postAction(payload){
+  if(CONFIG.DEMO_MODE || !CONFIG.APPS_SCRIPT_URL || CONFIG.APPS_SCRIPT_URL.indexOf("PASTE_URL")===0){
+    // simulate locally in demo mode
+    const item = state.data.find(d=>d.ID===payload.id);
+    if(!item) return {success:false,error:"ID tidak ditemukan"};
+    if(payload.action==="update_perbaikan"){
+      item.Status="Diperbaiki"; item.Nama_PIC=payload.nama_pic; item.Tanggal_Perbaikan=payload.tanggal;
+      item.Keterangan_Perbaikan=payload.keterangan;
+      if(payload.foto_base64) item.Foto_Bukti_Perbaikan_URL=payload.foto_base64;
+      if(payload.video_base64) item.Video_Bukti_Perbaikan_URL=payload.video_base64;
+    } else if(payload.action==="verify"){
+      item.Status = payload.approved ? "Terverifikasi" : "Ditolak";
+      item.Catatan_QHSE = payload.catatan||""; item.Verifikator = payload.verifikator||""; item.Tanggal_Verifikasi = new Date().toISOString().slice(0,10);
+    }
+    return {success:true};
+  }
+  try{
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"}, // avoids CORS preflight on Apps Script
+      body: JSON.stringify(payload)
+    });
+    return await res.json();
+  }catch(err){
+    return {success:false, error:"Gagal terhubung ke server."};
+  }
+}
+
+function stats(list){
+  const s = {total:list.length, open:0, review:0, done:0, rejected:0, final:0};
+  list.forEach(d=>{
+    if(d.Status==="Open") s.open++;
+    else if(d.Status==="Diperbaiki") s.review++;
+    else if(d.Status==="Terverifikasi") s.done++;
+    else if(d.Status==="Ditolak") s.rejected++;
+    else if(d.Status==="Ditolak_Final") s.final++;
+  });
+  return s;
+}
+
+function badgeHtml(status){
+  const st = STATUS_LABEL[status] || {label:status,cls:"open"};
+  return `<span class="badge ${st.cls}">${st.label}</span>`;
+}
+const RISK_LABEL = {
+  N: {label:"N - Normal", cls:"risk-n"},
+  S: {label:"S - Serius", cls:"risk-s"},
+  C: {label:"C - Kritikal", cls:"risk-c"},
+  VC: {label:"VC - Sangat Kritikal", cls:"risk-vc"}
+};
+function riskBadge(risk){
+  const r = RISK_LABEL[risk] || RISK_LABEL.N;
+  return `<span class="badge ${r.cls}">${r.label}</span>`;
+}
+function stepperHtml(status){
+  let idx = STEP_ORDER.indexOf(status);
+  if(status==="Ditolak") idx = 1; // sits at "Diperbaiki" stage visually, needs redo
+  const dots = STEP_ORDER.map((s,i)=>{
+    let cls = "";
+    if(i < idx) cls = "filled";
+    else if(i === idx) cls = status==="Ditolak" ? "" : "current";
+    return `<div class="dot ${cls}"></div>`;
+  });
+  let html = dots[0];
+  for(let i=0;i<2;i++){
+    html += `<div class="seg ${i<idx?'filled':''}"></div>` + dots[i+1];
+  }
+  return `<div class="stepper">${html}</div>`;
+}
+
+function findingCard(d){
+  return `<div class="finding" onclick="openDetail('${d.ID}')">
+    <div class="f-top">
+      <div>
+        <div class="f-id mono">${d.ID} · ${d.Nomor_Outlet}</div>
+        <div class="f-title">${d.Item_Checklist}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;">
+        ${badgeHtml(d.Status)}
+        ${riskBadge(d.Tingkat_Risiko)}
+      </div>
+    </div>
+    <div class="f-meta"><span>🏪 ${d.Nama_Outlet}</span><span>📅 ${jsonToDate(d.Tanggal_Audit)}</span><span>${d.Kategori_Temuan}</span></div>
+    ${stepperHtml(d.Status)}
+  </div>`;
+}
+
+function filteredQhse(){
+  return state.data.filter(d=>{
+    if(state.outletFilter && !(d.Nama_Outlet+" "+d.Nomor_Outlet).toLowerCase().includes(state.outletFilter.toLowerCase())) return false;
+    if(state.statusFilter!=="all" && d.Status!==state.statusFilter) return false;
+    return true;
+  });
+}
+
+function renderQhse(){
+  if(!state.qhseUnlocked && !CONFIG.DEMO_MODE){
+    return `<div class="gate">
+      <div>
+        <label>Masukkan PIN/Password Tim QHSE</label>
+        <div class="pin-wrap">
+          <input type="password" id="qhsePinInput" placeholder="••••••" onkeydown="if(event.key==='Enter')verifyPin('qhse')">
+          <button type="button" class="pin-eye" onclick="togglePinVisibility('qhsePinInput')">👁️</button>
+        </div>
+      </div>
+      <button onclick="verifyPin('qhse')">Buka Halaman QHSE</button>
+    </div>
+    ${state.pinError?`<div class="msg err" style="margin-top:10px;">${state.pinError}</div>`:""}`;
+  }
+  const list = filteredQhse();
+  const s = stats(state.data);
+  return `
+  <div class="stats">
+    <div class="stat"><div class="n">${s.total}</div><div class="l">Total Temuan</div></div>
+    <div class="stat open"><div class="n">${s.open}</div><div class="l">Belum Ditindaklanjuti</div></div>
+    <div class="stat review"><div class="n">${s.review}</div><div class="l">Menunggu Verifikasi</div></div>
+    <div class="stat done"><div class="n">${s.done}</div><div class="l">Selesai</div></div>
+    <div class="stat"><div class="n" style="color:var(--red)">${s.rejected}</div><div class="l">Perlu Perbaikan Ulang</div></div>
+    <div class="stat"><div class="n" style="color:var(--red)">${s.final}</div><div class="l">Ditolak 3x - Eskalasi Manual</div></div>
+  </div>
+  <div class="filters">
+    <input type="text" placeholder="Cari outlet..." value="${state.outletFilter}" oninput="state.outletFilter=this.value;render()">
+    <div class="pill-filter">
+      ${["all","Open","Diperbaiki","Terverifikasi","Ditolak","Ditolak_Final"].map(st=>`<button class="${state.statusFilter===st?'active':''}" onclick="state.statusFilter='${st}';render()">${st==="all"?"Semua":STATUS_LABEL[st].label}</button>`).join("")}
+    </div>
+  </div>
+  <div class="list">
+    ${list.length? list.map(findingCard).join("") : `<div class="empty"><div class="big">🍃</div>Tidak ada temuan yang cocok dengan filter.</div>`}
+  </div>`;
+}
+
+function renderPic(){
+  if(!state.picUnlocked && !CONFIG.DEMO_MODE){
+    return `<div class="gate">
+      <div>
+        <label>Masukkan Password PIC Outlet</label>
+        <div class="pin-wrap">
+          <input type="password" id="picPinInput" placeholder="••••••" onkeydown="if(event.key==='Enter')verifyPin('pic')">
+          <button type="button" class="pin-eye" onclick="togglePinVisibility('picPinInput')">👁️</button>
+        </div>
+      </div>
+      <button onclick="verifyPin('pic')">Masuk</button>
+    </div>
+    ${state.pinError?`<div class="msg err" style="margin-top:10px;">${state.pinError}</div>`:""}`;
+  }
+  if(!state.picOutletActive){
+    return `<div class="gate">
+      <div>
+        <label>Masukkan Nomor Outlet</label>
+        <input type="text" id="picOutletInput" placeholder="cth. OT-102" value="${state.picOutletInput}">
+      </div>
+      <button onclick="activatePicOutlet()">Lihat Temuan Outlet</button>
+    </div>`;
+  }
+  const list = state.data.filter(d=> String(d.Nomor_Outlet).trim().toLowerCase()===String(state.picOutletActive).trim().toLowerCase());
+  const s = stats(list);
+  return `
+  <div class="filters" style="justify-content:space-between;">
+    <div class="f-id mono">Outlet: <strong style="color:var(--charcoal)">${state.picOutletActive}</strong></div>
+    <button onclick="state.picOutletActive='';render()" style="background:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;">Ganti Outlet</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="n">${s.total}</div><div class="l">Total Temuan</div></div>
+    <div class="stat open"><div class="n">${s.open}</div><div class="l">Perlu Ditindaklanjuti</div></div>
+    <div class="stat review"><div class="n">${s.review}</div><div class="l">Menunggu Verifikasi</div></div>
+    <div class="stat done"><div class="n">${s.done}</div><div class="l">Selesai</div></div>
+    <div class="stat"><div class="n" style="color:var(--red)">${s.rejected}</div><div class="l">Perlu Perbaikan Ulang</div></div>
+    <div class="stat"><div class="n" style="color:var(--red)">${s.final}</div><div class="l">Ditolak 3x - Eskalasi Manual</div></div>
+  </div>
+  <div class="list">
+    ${list.length? list.map(findingCard).join("") : `<div class="empty"><div class="big">🍃</div>Belum ada temuan untuk outlet ini.</div>`}
+  </div>`;
+}
+
+function activatePicOutlet(){
+  const val = document.getElementById('picOutletInput').value.trim();
+  if(!val) return;
+  state.picOutletActive = val;
+  render();
+}
+
+function togglePinVisibility(inputId){
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+async function verifyPin(target){
+  const inputId = target === 'pic' ? 'picPinInput' : 'qhsePinInput';
+  const input = document.getElementById(inputId);
+  const pin = input ? input.value.trim() : "";
+  if(!pin){ state.pinError = "Masukkan PIN/password dulu."; render(); return; }
+  state.pinError = "Memeriksa...";
+  render();
+  const res = await postAction({action:"verify_pin", pin, target});
+  if(res.success){
+    if(target === 'pic') state.picUnlocked = true; else state.qhseUnlocked = true;
+    state.pinError = "";
+  } else if(res.message && res.message.indexOf('Unknown action') > -1){
+    state.pinError = "Server belum mengenali aksi 'verify_pin' — kemungkinan edit doPost belum ditambahkan/di-deploy ulang. Cek lagi PANDUAN-INTEGRASI.md bagian doPost.";
+  } else {
+    state.pinError = res.error || "PIN/password salah.";
+  }
+  render();
+}
+
+function openDetail(id){ state.detailId = id; state.formMsg=""; render(); }
+function closeDetail(){ state.detailId = null; render(); }
+
+function detailModal(){
+  if(!state.detailId) return "";
+  const d = state.data.find(x=>x.ID===state.detailId);
+  if(!d) return "";
+  const canPicSubmit = state.role==="pic" && (d.Status==="Open" || d.Status==="Ditolak");
+  const canQhseVerify = state.role==="qhse" && d.Status==="Diperbaiki";
+  const percobaanKe = Number(d.Percobaan_Ke) || 0;
+
+  function roundSuf(n){ return n===1 ? "" : "_"+n; }
+
+  // Bangun riwayat semua percobaan yang sudah pernah diisi (maks 3)
+  let historyHtml = "";
+  for(let n=1; n<=3; n++){
+    const suf = roundSuf(n);
+    const namaPic = d["Nama_PIC"+suf];
+    if(!namaPic) continue; // percobaan ini belum pernah diisi
+
+    const tgl = d["Tanggal_Perbaikan"+suf];
+    const ket = d["Keterangan_Perbaikan"+suf];
+    const foto = d["Foto_Bukti_Perbaikan_URL"+suf];
+    const video = d["Video_Bukti_Perbaikan_URL"+suf];
+    const hasil = d["Hasil"+suf];
+    const catatan = d["Catatan_QHSE"+suf];
+    const verifikator = d["Verifikator"+suf];
+    const tglVerif = d["Tanggal_Verifikasi"+suf];
+
+    let hasilBadge = "";
+    if(hasil==="Diterima") hasilBadge = `<span class="badge done">Diterima</span>`;
+    else if(hasil==="Ditolak") hasilBadge = `<span class="badge rejected">Ditolak</span>`;
+    else hasilBadge = `<span class="badge review">Menunggu Verifikasi</span>`;
+
+    historyHtml += `
+    <div class="desc-box" style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <strong>Percobaan ke-${n}${n===3?" (terakhir)":""} · ${namaPic}</strong>
+        ${hasilBadge}
+      </div>
+      <div style="color:var(--gray);font-size:11.5px;margin-top:2px;">${jsonToDate(tgl)}</div>
+      <div class="freetext" style="margin-top:6px;">${formatText(ket)||"-"}</div>
+      <div class="photo-row">
+        ${foto?`<a href="${foto}" target="_blank"><img src="${driveThumb(foto)}" loading="lazy" onerror="this.parentElement.innerHTML='📷 Lihat foto'"></a>`:""}
+        ${video?`<a class="vid" href="${video}" target="_blank" style="display:flex;align-items:center;justify-content:center;background:var(--charcoal);color:#fff;border-radius:10px;width:90px;height:90px;font-size:26px;">▶</a>`:""}
+      </div>
+      ${catatan?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);"><strong style="font-size:12px;">Catatan QHSE:</strong> <span class="freetext">${formatText(catatan)}</span><div style="color:var(--gray);font-size:11px;margin-top:2px;">— ${verifikator||"-"}, ${jsonToDate(tglVerif)}</div></div>`:""}
+    </div>`;
+  }
+  const evidence = historyHtml ? `<div class="section-label">Riwayat Perbaikan (${percobaanKe}/3 percobaan)</div>${historyHtml}` : "";
+
+  let picForm = "";
+  if(canPicSubmit){
+    const nextAttempt = percobaanKe + 1;
+    picForm = `
+    <div class="section-label">Upload Bukti Perbaikan — Percobaan ke-${nextAttempt}</div>
+    ${nextAttempt===3?`<div class="msg" style="background:var(--amber-soft);color:var(--amber);margin-bottom:10px;">Ini percobaan terakhir (3/3). Kalau ditolak lagi, temuan ini perlu ditindaklanjuti manual langsung dengan tim QHSE.</div>`:""}
+    <div class="form-field"><label>Nama PIC Outlet</label><input type="text" id="f_nama_pic" placeholder="Nama lengkap"></div>
+    <div class="form-field"><label>Tanggal Perbaikan</label><input type="date" id="f_tanggal" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="form-field"><label>Keterangan Perbaikan</label><textarea id="f_keterangan" placeholder="Jelaskan tindakan perbaikan yang sudah dilakukan..."></textarea></div>
+    <div class="form-field">
+      <label>Foto Bukti (maks 5MB)</label>
+      <div class="file-drop" id="dropFoto" onclick="document.getElementById('f_foto').click()">📷 Ketuk untuk pilih foto</div>
+      <input type="file" id="f_foto" accept="image/*" style="display:none" onchange="handleFile(this,'dropFoto','📷')">
+    </div>
+    <div class="form-field">
+      <label>Video Bukti (opsional, maks 15MB)</label>
+      <div class="file-drop" id="dropVideo" onclick="document.getElementById('f_video').click()">🎥 Ketuk untuk pilih video</div>
+      <input type="file" id="f_video" accept="video/*" style="display:none" onchange="handleFile(this,'dropVideo','🎥')">
+    </div>
+    <button class="btn-primary" onclick="submitPerbaikan('${d.ID}')">Kirim Bukti Perbaikan</button>
+    <div id="formMsgBox">${state.formMsg}</div>
+    `;
+  }
+
+  let qhseForm = "";
+  if(canQhseVerify){
+    qhseForm = `
+    <div class="section-label">Verifikasi Perbaikan — Percobaan ke-${percobaanKe}</div>
+    <div class="form-field"><label>Nama Verifikator</label><input type="text" id="v_nama" placeholder="Nama Anda"></div>
+    <div class="form-field"><label>Catatan (wajib jika ditolak)</label><textarea id="v_catatan" placeholder="Catatan untuk PIC outlet..."></textarea></div>
+    <div class="btn-row">
+      <button class="btn-reject" onclick="submitVerify('${d.ID}',false)">Tolak, Minta Ulang</button>
+      <button class="btn-approve" onclick="submitVerify('${d.ID}',true)">Setujui &amp; Selesai</button>
+    </div>
+    <div id="formMsgBox">${state.formMsg}</div>
+    `;
+  }
+
+  let finalNotice = "";
+  if(d.Status==="Ditolak_Final"){
+    finalNotice = `<div class="msg err">Temuan ini sudah ditolak 3x berturut-turut. Dashboard tidak lagi menerima upload baru dari sini — perlu ditindaklanjuti manual (tatap muka / WA / dsb) dengan tim QHSE.</div>`;
+  }
+
+  return `<div class="overlay" onclick="if(event.target===this)closeDetail()">
+    <div class="modal">
+      <button class="close-x" onclick="closeDetail()">✕</button>
+      <div class="f-id mono">${d.ID} · ${d.Nomor_Outlet} · ${d.Nama_Outlet}</div>
+      <h2>${d.Item_Checklist}</h2>
+      <div class="sub">Audit ${jsonToDate(d.Tanggal_Audit)} oleh ${d.Nama_Auditor} · ${d.Kategori_Audit}</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">${badgeHtml(d.Status)}${riskBadge(d.Tingkat_Risiko)}<span class="badge" style="background:var(--cream);color:var(--gray);">${d.Kategori_Temuan}</span></div>
+      ${stepperHtml(d.Status)}
+      <div class="section-label">Deskripsi Temuan</div>
+      <div class="desc-box freetext">${formatText(d.Deskripsi_Temuan)}</div>
+      ${d.Foto_Temuan_URL?`<div class="photo-row"><a href="${d.Foto_Temuan_URL}" target="_blank"><img src="${driveThumb(d.Foto_Temuan_URL)}" loading="lazy" onerror="this.parentElement.innerHTML='📷 Lihat foto'"></a></div>`:""}
+      ${evidence}
+      ${finalNotice}
+      ${picForm}
+      ${qhseForm}
+    </div>
+  </div>`;
+}
+
+let pendingFoto = null, pendingVideo = null;
+async function handleFile(input, dropId, icon){
+  const file = input.files[0];
+  if(!file) return;
+  const maxSize = dropId==='dropFoto' ? 5*1024*1024 : 15*1024*1024;
+  if(file.size > maxSize){
+    alert("Ukuran file terlalu besar. Maks " + (maxSize/1024/1024) + "MB.");
+    input.value=""; return;
+  }
+  const base64 = await fileToBase64(file);
+  if(dropId==='dropFoto') pendingFoto = base64; else pendingVideo = base64;
+  document.getElementById(dropId).textContent = icon + " " + file.name;
+  document.getElementById(dropId).classList.add('filled');
+}
+
+async function submitPerbaikan(id){
+  const nama = document.getElementById('f_nama_pic').value.trim();
+  const tanggal = document.getElementById('f_tanggal').value;
+  const keterangan = document.getElementById('f_keterangan').value.trim();
+  if(!nama || !keterangan || !pendingFoto){
+    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Nama PIC, keterangan, dan foto bukti wajib diisi.</div>`;
+    return;
+  }
+  document.getElementById('formMsgBox').innerHTML = `<div class="msg" style="background:var(--amber-soft);color:var(--amber);">Mengirim data...</div>`;
+  const res = await postAction({action:"update_perbaikan", id, nama_pic:nama, tanggal, keterangan, foto_base64:pendingFoto, video_base64:pendingVideo});
+  if(res.success){
+    pendingFoto=null; pendingVideo=null;
+    await loadData();
+    state.detailId = null;
+    render();
+  } else {
+    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">${res.error||"Gagal mengirim."}</div>`;
+  }
+}
+
+async function submitVerify(id, approved){
+  const nama = document.getElementById('v_nama').value.trim();
+  const catatan = document.getElementById('v_catatan').value.trim();
+  if(!approved && !catatan){
+    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Catatan wajib diisi jika perbaikan ditolak.</div>`;
+    return;
+  }
+  document.getElementById('formMsgBox').innerHTML = `<div class="msg" style="background:var(--amber-soft);color:var(--amber);">Menyimpan...</div>`;
+  const res = await postAction({action:"verify", id, approved, catatan, verifikator:nama});
+  if(res.success){
+    await loadData();
+    state.detailId = null;
+    render();
+  } else {
+    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">${res.error||"Gagal menyimpan."}</div>`;
+  }
+}
+
+function render(){
+  const app = document.getElementById('app');
+  if(state.loading){ app.innerHTML = `<div class="loading-text">Memuat data audit...</div>`; return; }
+  try{
+    let html = "";
+    if(state.loadError) html += `<div class="msg err" style="margin-bottom:14px;">${state.loadError}</div>`;
+    html += state.role==="qhse" ? renderQhse() : renderPic();
+    html += detailModal();
+    app.innerHTML = html;
+  }catch(err){
+    console.error('Render error:', err);
+    app.innerHTML = `<div class="msg err" style="margin-bottom:14px;">Terjadi kesalahan saat menampilkan data: ${err.message}. Coba refresh halaman.</div>`;
+  }
+}
+
+document.getElementById('btnRoleQhse').onclick = ()=>{ state.role='qhse'; state.detailId=null; document.getElementById('btnRoleQhse').classList.add('active'); document.getElementById('btnRolePic').classList.remove('active'); render(); };
+document.getElementById('btnRolePic').onclick = ()=>{ state.role='pic'; state.detailId=null; document.getElementById('btnRolePic').classList.add('active'); document.getElementById('btnRoleQhse').classList.remove('active'); render(); };
+
+loadData();
+</script>
+</body>
+</html>
