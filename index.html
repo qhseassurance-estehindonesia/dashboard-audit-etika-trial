@@ -158,7 +158,7 @@ button{font-family:inherit;cursor:pointer;}
    3. Ubah DEMO_MODE menjadi false.
 */
 const CONFIG = {
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxaIUSLsbWFSFSwGOaQjdvtqji9MSerc_FmSMR_xJ2XFo7s6yO3b0wfY6Ag1wphBr08/exec",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyr4KkEJViQDGopjo53D8rCH-4mMohrmAbATkwtEvw1zdCGiLqY7KEsrLieMXOvz_0-/exec",
   DEMO_MODE: false
 };
 
@@ -218,6 +218,20 @@ function driveThumb(url){
   const m = String(url).match(/\/d\/([a-zA-Z0-9_-]+)/);
   if(!m) return url;
   return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w500';
+}
+
+/**
+ * Satu item checklist bisa punya lebih dari 1 foto — disimpan digabung
+ * pakai baris baru (\n) di satu sel. Ini pecah jadi galeri thumbnail.
+ */
+function renderPhotoGallery(urlString){
+  if(!urlString) return "";
+  const urls = String(urlString).split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!urls.length) return "";
+  const imgs = urls.map(u=>
+    `<a href="${u}" target="_blank"><img src="${driveThumb(u)}" loading="lazy" onerror="this.parentElement.innerHTML='📷 Lihat foto'"></a>`
+  ).join("");
+  return `<div class="photo-row">${imgs}</div>`;
 }
 
 async function loadData(){
@@ -558,7 +572,7 @@ function detailModal(){
       ${stepperHtml(d.Status)}
       <div class="section-label">Deskripsi Temuan</div>
       <div class="desc-box freetext">${formatText(d.Deskripsi_Temuan)}</div>
-      ${d.Foto_Temuan_URL?`<div class="photo-row"><a href="${d.Foto_Temuan_URL}" target="_blank"><img src="${driveThumb(d.Foto_Temuan_URL)}" loading="lazy" onerror="this.parentElement.innerHTML='📷 Lihat foto'"></a></div>`:""}
+      ${renderPhotoGallery(d.Foto_Temuan_URL)}
       ${evidence}
       ${finalNotice}
       ${picForm}
