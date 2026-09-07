@@ -198,6 +198,16 @@ let state = {
 function jsonToDate(v){ return v ? String(v).slice(0,10) : ""; }
 
 /**
+ * Normalisasi nomor outlet ke 4 digit di sisi dashboard juga — toleran
+ * kalau PIC ketik "625" tanpa 0 di depan, tetap ketemu sama data "0625".
+ */
+function normalizeOutletJS(v){
+  const s = String(v||'').trim();
+  if(/^\d+$/.test(s)) return s.padStart(4,'0');
+  return s;
+}
+
+/**
  * Rapetin baris kosong berlebih dari teks yang diketik user (misal enter berkali-kali),
  * maksimal 1 baris kosong di antara paragraf, biar tampilan nggak boros space
  * tapi paragraf yang beneran dipisah tetap kebawa.
@@ -416,7 +426,7 @@ function renderPic(){
       <button onclick="activatePicOutlet()">Lihat Temuan Outlet</button>
     </div>`;
   }
-  const list = state.data.filter(d=> String(d.Nomor_Outlet).trim().toLowerCase()===String(state.picOutletActive).trim().toLowerCase());
+  const list = state.data.filter(d=> normalizeOutletJS(d.Nomor_Outlet)===normalizeOutletJS(state.picOutletActive));
   const s = stats(list);
   return `
   <div class="filters" style="justify-content:space-between;">
