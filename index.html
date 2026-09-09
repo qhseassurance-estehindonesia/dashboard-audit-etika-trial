@@ -393,7 +393,7 @@ function renderQhse(){
     <div class="stat"><div class="n" style="color:var(--red)">${s.final}</div><div class="l">Ditolak 3x - Eskalasi Manual</div></div>
   </div>
   <div class="filters">
-    <input type="text" placeholder="Cari outlet..." value="${state.outletFilter}" oninput="state.outletFilter=this.value;render()">
+    <input type="text" id="qhseOutletFilter" placeholder="Cari outlet..." value="${state.outletFilter}" oninput="updateOutletFilter(this.value)">
     <div class="pill-filter">
       ${["all","Open","Diperbaiki","Terverifikasi","Ditolak","Ditolak_Final"].map(st=>`<button class="${state.statusFilter===st?'active':''}" onclick="state.statusFilter='${st}';render()">${st==="all"?"Semua":STATUS_LABEL[st].label}</button>`).join("")}
     </div>
@@ -444,6 +444,17 @@ function renderPic(){
   <div class="list">
     ${list.length? list.map(findingCard).join("") : `<div class="empty"><div class="big">🍃</div>Belum ada temuan untuk outlet ini.</div>`}
   </div>`;
+}
+
+function updateOutletFilter(val){
+  state.outletFilter = val;
+  render();
+  const inp = document.getElementById('qhseOutletFilter');
+  if(inp){
+    inp.focus();
+    const len = inp.value.length;
+    inp.setSelectionRange(len, len);
+  }
 }
 
 function activatePicOutlet(){
