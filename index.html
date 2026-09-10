@@ -496,7 +496,7 @@ async function verifyPin(target){
   render();
 }
 
-function openDetail(id){ state.detailId = id; state.formMsg=""; render(); }
+function openDetail(id){ state.detailId = id; state.formMsg=""; pendingFotos=[null,null,null]; pendingVideo=null; render(); }
 function closeDetail(){ state.detailId = null; render(); }
 
 function detailModal(){
@@ -651,8 +651,17 @@ async function handleFile(input, dropId, icon){
   }
   const base64 = await fileToBase64(file);
   pendingVideo = base64;
-  document.getElementById(dropId).textContent = icon + " " + file.name;
-  document.getElementById(dropId).classList.add('filled');
+  const dropEl = document.getElementById(dropId);
+  dropEl.innerHTML = icon + " " + file.name + ` <span onclick="event.stopPropagation();removeVideoSlot()" style="margin-left:6px;color:var(--red);cursor:pointer;">✕</span>`;
+  dropEl.classList.add('filled');
+}
+
+function removeVideoSlot(){
+  pendingVideo = null;
+  document.getElementById('f_video').value = "";
+  const dropEl = document.getElementById('dropVideo');
+  dropEl.textContent = "🎥 Ketuk untuk pilih video";
+  dropEl.classList.remove('filled');
 }
 
 async function submitPerbaikan(id){
