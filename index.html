@@ -167,7 +167,9 @@ const STATUS_LABEL = {
   "Diperbaiki": {label:"Menunggu Verifikasi", cls:"review"},
   "Terverifikasi": {label:"Selesai", cls:"done"},
   "Ditolak": {label:"Perlu Perbaikan Ulang", cls:"rejected"},
-  "Ditolak_Final": {label:"Ditolak (3x) - Eskalasi Manual", cls:"rejected"}
+  "Ditolak_Final": {label:"Ditolak (3x) - Eskalasi Manual", cls:"rejected"},
+  "Menunggu_Banding": {label:"Menunggu Verifikasi Banding", cls:"review"},
+  "Dianulir": {label:"Dianulir (Banding Diterima)", cls:"done"}
 };
 const STEP_ORDER = ["Open","Diperbaiki","Terverifikasi"];
 
@@ -192,7 +194,8 @@ let state = {
   formMsg: "",
   qhseUnlocked: false,
   picUnlocked: false,
-  pinError: ""
+  pinError: "",
+  picActionMode: null
 };
 
 function jsonToDate(v){ return v ? String(v).slice(0,10) : ""; }
@@ -285,6 +288,16 @@ async function postAction(payload){
     } else if(payload.action==="verify"){
       item.Status = payload.approved ? "Terverifikasi" : "Ditolak";
       item.Catatan_QHSE = payload.catatan||""; item.Verifikator = payload.verifikator||""; item.Tanggal_Verifikasi = new Date().toISOString().slice(0,10);
+    } else if(payload.action==="submit_banding"){
+      item.Status="Menunggu_Banding"; item.Banding_Diajukan="Ya";
+      item.Banding_Nama_PIC=payload.nama_pic; item.Banding_Tanggal=payload.tanggal; item.Banding_Alasan=payload.alasan;
+      if(payload.foto_base64_list && payload.foto_base64_list.length) item.Banding_Foto_URL=payload.foto_base64_list.join('\n');
+      if(payload.video_base64) item.Banding_Video_URL=payload.video_base64;
+    } else if(payload.action==="verify_banding"){
+      item.Status = payload.approved ? "Dianulir" : "Open";
+      item.Banding_Catatan_QHSE = payload.catatan||""; item.Banding_Verifikator = payload.verifikator||"";
+      item.Banding_Tanggal_Verifikasi = new Date().toISOString().slice(0,10);
+      item.Banding_Hasil = payload.approved ? "Diterima" : "Ditolak";
     }
     return {success:true};
   }
@@ -301,13 +314,15 @@ async function postAction(payload){
 }
 
 function stats(list){
-  const s = {total:list.length, open:0, review:0, done:0, rejected:0, final:0};
+  const s = {total:list.length, open:0, review:0, done:0, rejected:0, final:0, bandingReview:0, dianulir:0};
   list.forEach(d=>{
     if(d.Status==="Open") s.open++;
     else if(d.Status==="Diperbaiki") s.review++;
     else if(d.Status==="Terverifikasi") s.done++;
     else if(d.Status==="Ditolak") s.rejected++;
     else if(d.Status==="Ditolak_Final") s.final++;
+    else if(d.Status==="Menunggu_Banding") s.bandingReview++;
+    else if(d.Status==="Dianulir") s.dianulir++;
   });
   return s;
 }
@@ -327,6 +342,11 @@ function riskBadge(risk){
   return `<span class="badge ${r.cls}">${r.label}</span>`;
 }
 function stepperHtml(status){
+  if(status==="Menunggu_Banding" || status==="Dianulir"){
+    const label = status==="Dianulir" ? "🏳️ Banding diterima — dianulir" : "🏳️ Menunggu keputusan banding";
+    const color = status==="Dianulir" ? "var(--green-mid)" : "var(--amber)";
+    return `<div style="font-size:11.5px;color:${color};font-weight:600;margin-top:10px;">${label}</div>`;
+  }
   let idx = STEP_ORDER.indexOf(status);
   if(status==="Ditolak") idx = 1; // sits at "Diperbaiki" stage visually, needs redo
   const dots = STEP_ORDER.map((s,i)=>{
@@ -391,11 +411,13 @@ function renderQhse(){
     <div class="stat done"><div class="n">${s.done}</div><div class="l">Selesai</div></div>
     <div class="stat"><div class="n" style="color:var(--red)">${s.rejected}</div><div class="l">Perlu Perbaikan Ulang</div></div>
     <div class="stat"><div class="n" style="color:var(--red)">${s.final}</div><div class="l">Ditolak 3x - Eskalasi Manual</div></div>
+    <div class="stat review"><div class="n">${s.bandingReview}</div><div class="l">Menunggu Verifikasi Banding</div></div>
+    <div class="stat done"><div class="n">${s.dianulir}</div><div class="l">Dianulir (Banding Diterima)</div></div>
   </div>
   <div class="filters">
     <input type="text" id="qhseOutletFilter" placeholder="Cari outlet..." value="${state.outletFilter}" oninput="updateOutletFilter(this.value)">
     <div class="pill-filter">
-      ${["all","Open","Diperbaiki","Terverifikasi","Ditolak","Ditolak_Final"].map(st=>`<button class="${state.statusFilter===st?'active':''}" onclick="state.statusFilter='${st}';render()">${st==="all"?"Semua":STATUS_LABEL[st].label}</button>`).join("")}
+      ${["all","Open","Diperbaiki","Terverifikasi","Ditolak","Ditolak_Final","Menunggu_Banding","Dianulir"].map(st=>`<button class="${state.statusFilter===st?'active':''}" onclick="state.statusFilter='${st}';render()">${st==="all"?"Semua":STATUS_LABEL[st].label}</button>`).join("")}
     </div>
   </div>
   <div class="list">
@@ -441,10 +463,12 @@ function renderPic(){
     <div class="stat done"><div class="n">${s.done}</div><div class="l">Selesai</div></div>
     <div class="stat"><div class="n" style="color:var(--red)">${s.rejected}</div><div class="l">Perlu Perbaikan Ulang</div></div>
     <div class="stat"><div class="n" style="color:var(--red)">${s.final}</div><div class="l">Ditolak 3x - Eskalasi Manual</div></div>
+    <div class="stat review"><div class="n">${s.bandingReview}</div><div class="l">Menunggu Verifikasi Banding</div></div>
+    <div class="stat done"><div class="n">${s.dianulir}</div><div class="l">Dianulir (Banding Diterima)</div></div>
   </div>
   <div class="filters">
     <div class="pill-filter">
-      ${["all","Open","Diperbaiki","Terverifikasi","Ditolak","Ditolak_Final"].map(st=>`<button class="${state.statusFilter===st?'active':''}" onclick="state.statusFilter='${st}';render()">${st==="all"?"Semua":STATUS_LABEL[st].label}</button>`).join("")}
+      ${["all","Open","Diperbaiki","Terverifikasi","Ditolak","Ditolak_Final","Menunggu_Banding","Dianulir"].map(st=>`<button class="${state.statusFilter===st?'active':''}" onclick="state.statusFilter='${st}';render()">${st==="all"?"Semua":STATUS_LABEL[st].label}</button>`).join("")}
     </div>
   </div>
   <div class="list">
@@ -496,16 +520,20 @@ async function verifyPin(target){
   render();
 }
 
-function openDetail(id){ state.detailId = id; state.formMsg=""; pendingFotos=[null,null,null]; pendingVideo=null; render(); }
+function openDetail(id){ state.detailId = id; state.formMsg=""; state.picActionMode=null; pendingFotos=[null,null,null]; pendingVideo=null; render(); }
 function closeDetail(){ state.detailId = null; render(); }
 
 function detailModal(){
   if(!state.detailId) return "";
   const d = state.data.find(x=>x.ID===state.detailId);
   if(!d) return "";
-  const canPicSubmit = state.role==="pic" && (d.Status==="Open" || d.Status==="Ditolak");
-  const canQhseVerify = state.role==="qhse" && d.Status==="Diperbaiki";
   const percobaanKe = Number(d.Percobaan_Ke) || 0;
+  const canBanding = state.role==="pic" && d.Status==="Open" && percobaanKe===0 && d.Banding_Diajukan!=="Ya";
+  const showChoice = canBanding && !state.picActionMode;
+  const canPicSubmit = state.role==="pic" && (d.Status==="Open" || d.Status==="Ditolak") && (!canBanding || state.picActionMode==="perbaikan");
+  const canBandingForm = canBanding && state.picActionMode==="banding";
+  const canQhseVerify = state.role==="qhse" && d.Status==="Diperbaiki";
+  const canQhseVerifyBanding = state.role==="qhse" && d.Status==="Menunggu_Banding";
 
   function roundSuf(n){ return n===1 ? "" : "_"+n; }
 
@@ -547,10 +575,48 @@ function detailModal(){
   }
   const evidence = historyHtml ? `<div class="section-label">Riwayat Perbaikan (${percobaanKe}/3 percobaan)</div>${historyHtml}` : "";
 
+  // Riwayat banding (kalau pernah diajukan, tampil apapun statusnya sekarang)
+  let bandingHistory = "";
+  if(d.Banding_Diajukan==="Ya"){
+    let bHasilBadge = "";
+    if(d.Banding_Hasil==="Diterima") bHasilBadge = `<span class="badge done">Diterima</span>`;
+    else if(d.Banding_Hasil==="Ditolak") bHasilBadge = `<span class="badge rejected">Ditolak</span>`;
+    else bHasilBadge = `<span class="badge review">Menunggu Verifikasi</span>`;
+    bandingHistory = `
+    <div class="section-label">🏳️ Riwayat Banding</div>
+    <div class="desc-box" style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <strong>${d.Banding_Nama_PIC||"-"}</strong>
+        ${bHasilBadge}
+      </div>
+      <div style="color:var(--gray);font-size:11.5px;margin-top:2px;">${jsonToDate(d.Banding_Tanggal)}</div>
+      <div class="freetext" style="margin-top:6px;">${formatText(d.Banding_Alasan)||"-"}</div>
+      <div class="photo-row">
+        ${d.Banding_Video_URL?`<a class="vid" href="${d.Banding_Video_URL}" target="_blank" style="display:flex;align-items:center;justify-content:center;background:var(--charcoal);color:#fff;border-radius:10px;width:90px;height:90px;font-size:26px;">▶</a>`:""}
+      </div>
+      ${renderPhotoGallery(d.Banding_Foto_URL)}
+      ${d.Banding_Catatan_QHSE?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);"><strong style="font-size:12px;">Catatan QHSE:</strong> <span class="freetext">${formatText(d.Banding_Catatan_QHSE)}</span><div style="color:var(--gray);font-size:11px;margin-top:2px;">— ${d.Banding_Verifikator||"-"}, ${jsonToDate(d.Banding_Tanggal_Verifikasi)}</div></div>`:""}
+      ${d.Banding_Hasil==="Ditolak"?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);color:var(--red);font-size:12.5px;">Banding ditolak — silakan lanjut upload bukti perbaikan di bawah.</div>`:""}
+    </div>`;
+  }
+
+  let choiceButtons = "";
+  if(showChoice){
+    choiceButtons = `
+    <div class="section-label">Pilih Tindakan</div>
+    <div class="btn-row" style="margin-bottom:6px;">
+      <button class="btn-approve" onclick="setPicActionMode('perbaikan')">📤 Upload Bukti Perbaikan</button>
+      <button class="btn-reject" onclick="setPicActionMode('banding')">🏳️ Ajukan Banding</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--gray);margin-bottom:10px;">Kalau menurut kamu auditor salah kasih temuan ini, pilih "Ajukan Banding" — nanti tim QHSE yang verifikasi.</div>
+    `;
+  }
+
   let picForm = "";
   if(canPicSubmit){
     const nextAttempt = percobaanKe + 1;
     picForm = `
+    ${canBanding?`<button onclick="setPicActionMode(null)" style="background:none;border:none;color:var(--gray);font-size:12px;margin-bottom:8px;cursor:pointer;">← Ganti pilihan</button>`:""}
     <div class="section-label">Upload Bukti Perbaikan — Percobaan ke-${nextAttempt}</div>
     ${nextAttempt===3?`<div class="msg" style="background:var(--amber-soft);color:var(--amber);margin-bottom:10px;">Ini percobaan terakhir (3/3). Kalau ditolak lagi, temuan ini perlu ditindaklanjuti manual langsung dengan tim QHSE.</div>`:""}
     <div class="form-field"><label>Nama PIC Outlet</label><input type="text" id="f_nama_pic" placeholder="Nama lengkap"></div>
@@ -577,6 +643,35 @@ function detailModal(){
     `;
   }
 
+  let bandingForm = "";
+  if(canBandingForm){
+    bandingForm = `
+    <button onclick="setPicActionMode(null)" style="background:none;border:none;color:var(--gray);font-size:12px;margin-bottom:8px;cursor:pointer;">← Ganti pilihan</button>
+    <div class="section-label">🏳️ Ajukan Banding</div>
+    <div class="form-field"><label>Nama PIC Outlet</label><input type="text" id="b_nama_pic" placeholder="Nama lengkap"></div>
+    <div class="form-field"><label>Tanggal</label><input type="date" id="b_tanggal" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="form-field"><label>Alasan Banding</label><textarea id="b_alasan" placeholder="Jelaskan kenapa menurutmu temuan ini keliru..."></textarea></div>
+    <div class="form-field">
+      <label>Foto Bukti (maks 5MB/foto, minimal 1, maks 3)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="file-drop" style="flex:1;min-width:100px;" id="dropFoto1" onclick="document.getElementById('f_foto1').click()">📷 Foto 1</div>
+        <div class="file-drop" style="flex:1;min-width:100px;" id="dropFoto2" onclick="document.getElementById('f_foto2').click()">📷 Foto 2</div>
+        <div class="file-drop" style="flex:1;min-width:100px;" id="dropFoto3" onclick="document.getElementById('f_foto3').click()">📷 Foto 3</div>
+      </div>
+      <input type="file" id="f_foto1" accept="image/*" style="display:none" onchange="handleFotoSlot(this,1)">
+      <input type="file" id="f_foto2" accept="image/*" style="display:none" onchange="handleFotoSlot(this,2)">
+      <input type="file" id="f_foto3" accept="image/*" style="display:none" onchange="handleFotoSlot(this,3)">
+    </div>
+    <div class="form-field">
+      <label>Video Bukti (opsional, maks 15MB)</label>
+      <div class="file-drop" id="dropVideo" onclick="document.getElementById('f_video').click()">🎥 Ketuk untuk pilih video</div>
+      <input type="file" id="f_video" accept="video/*" style="display:none" onchange="handleFile(this,'dropVideo','🎥')">
+    </div>
+    <button class="btn-primary" onclick="submitBanding('${d.ID}')">Kirim Banding</button>
+    <div id="formMsgBox">${state.formMsg}</div>
+    `;
+  }
+
   let qhseForm = "";
   if(canQhseVerify){
     qhseForm = `
@@ -586,6 +681,20 @@ function detailModal(){
     <div class="btn-row">
       <button class="btn-reject" onclick="submitVerify('${d.ID}',false)">Tolak, Minta Ulang</button>
       <button class="btn-approve" onclick="submitVerify('${d.ID}',true)">Setujui &amp; Selesai</button>
+    </div>
+    <div id="formMsgBox">${state.formMsg}</div>
+    `;
+  }
+
+  let qhseBandingForm = "";
+  if(canQhseVerifyBanding){
+    qhseBandingForm = `
+    <div class="section-label">🏳️ Verifikasi Banding</div>
+    <div class="form-field"><label>Nama Verifikator</label><input type="text" id="vb_nama" placeholder="Nama Anda"></div>
+    <div class="form-field"><label>Catatan (wajib jika ditolak)</label><textarea id="vb_catatan" placeholder="Catatan untuk PIC outlet..."></textarea></div>
+    <div class="btn-row">
+      <button class="btn-reject" onclick="submitVerifyBanding('${d.ID}',false)">Tolak Banding</button>
+      <button class="btn-approve" onclick="submitVerifyBanding('${d.ID}',true)">Terima &amp; Anulir Temuan</button>
     </div>
     <div id="formMsgBox">${state.formMsg}</div>
     `;
@@ -607,10 +716,14 @@ function detailModal(){
       <div class="section-label">Deskripsi Temuan</div>
       <div class="desc-box freetext">${formatText(d.Deskripsi_Temuan)}</div>
       ${renderPhotoGallery(d.Foto_Temuan_URL)}
+      ${bandingHistory}
       ${evidence}
       ${finalNotice}
+      ${choiceButtons}
       ${picForm}
+      ${bandingForm}
       ${qhseForm}
+      ${qhseBandingForm}
     </div>
   </div>`;
 }
@@ -694,6 +807,54 @@ async function submitVerify(id, approved){
   }
   document.getElementById('formMsgBox').innerHTML = `<div class="msg" style="background:var(--amber-soft);color:var(--amber);">Menyimpan...</div>`;
   const res = await postAction({action:"verify", id, approved, catatan, verifikator:nama});
+  if(res.success){
+    await loadData();
+    state.detailId = null;
+    render();
+  } else {
+    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">${res.error||"Gagal menyimpan."}</div>`;
+  }
+}
+
+function setPicActionMode(mode){
+  state.picActionMode = mode;
+  pendingFotos = [null,null,null];
+  pendingVideo = null;
+  state.formMsg = "";
+  render();
+}
+
+async function submitBanding(id){
+  const nama = document.getElementById('b_nama_pic').value.trim();
+  const tanggal = document.getElementById('b_tanggal').value;
+  const alasan = document.getElementById('b_alasan').value.trim();
+  const fotos = pendingFotos.filter(Boolean);
+  if(!nama || !alasan || fotos.length===0){
+    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Nama PIC, alasan banding, dan minimal 1 foto bukti wajib diisi.</div>`;
+    return;
+  }
+  document.getElementById('formMsgBox').innerHTML = `<div class="msg" style="background:var(--amber-soft);color:var(--amber);">Mengirim banding...</div>`;
+  const res = await postAction({action:"submit_banding", id, nama_pic:nama, tanggal, alasan, foto_base64_list:fotos, video_base64:pendingVideo});
+  if(res.success){
+    pendingFotos=[null,null,null]; pendingVideo=null;
+    await loadData();
+    state.detailId = null;
+    state.picActionMode = null;
+    render();
+  } else {
+    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">${res.error||"Gagal mengirim banding."}</div>`;
+  }
+}
+
+async function submitVerifyBanding(id, approved){
+  const nama = document.getElementById('vb_nama').value.trim();
+  const catatan = document.getElementById('vb_catatan').value.trim();
+  if(!approved && !catatan){
+    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Catatan wajib diisi jika banding ditolak.</div>`;
+    return;
+  }
+  document.getElementById('formMsgBox').innerHTML = `<div class="msg" style="background:var(--amber-soft);color:var(--amber);">Menyimpan...</div>`;
+  const res = await postAction({action:"verify_banding", id, approved, catatan, verifikator:nama});
   if(res.success){
     await loadData();
     state.detailId = null;
