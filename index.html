@@ -288,6 +288,8 @@ async function postAction(payload){
     } else if(payload.action==="verify"){
       item.Status = payload.approved ? "Terverifikasi" : "Ditolak";
       item.Catatan_QHSE = payload.catatan||""; item.Verifikator = payload.verifikator||""; item.Tanggal_Verifikasi = new Date().toISOString().slice(0,10);
+      if(payload.foto_base64_list && payload.foto_base64_list.length) item.Foto_Verifikasi_QHSE=payload.foto_base64_list.join('\n');
+      if(payload.video_base64) item.Video_Verifikasi_QHSE=payload.video_base64;
     } else if(payload.action==="submit_banding"){
       item.Status="Menunggu_Banding"; item.Banding_Diajukan="Ya";
       item.Banding_Nama_PIC=payload.nama_pic; item.Banding_Tanggal=payload.tanggal; item.Banding_Alasan=payload.alasan;
@@ -298,6 +300,8 @@ async function postAction(payload){
       item.Banding_Catatan_QHSE = payload.catatan||""; item.Banding_Verifikator = payload.verifikator||"";
       item.Banding_Tanggal_Verifikasi = new Date().toISOString().slice(0,10);
       item.Banding_Hasil = payload.approved ? "Diterima" : "Ditolak";
+      if(payload.foto_base64_list && payload.foto_base64_list.length) item.Banding_Foto_Verifikasi_URL=payload.foto_base64_list.join('\n');
+      if(payload.video_base64) item.Banding_Video_Verifikasi_URL=payload.video_base64;
     }
     return {success:true};
   }
@@ -552,6 +556,8 @@ function detailModal(){
     const catatan = d["Catatan_QHSE"+suf];
     const verifikator = d["Verifikator"+suf];
     const tglVerif = d["Tanggal_Verifikasi"+suf];
+    const fotoVerif = d["Foto_Verifikasi_QHSE"+suf];
+    const videoVerif = d["Video_Verifikasi_QHSE"+suf];
 
     let hasilBadge = "";
     if(hasil==="Diterima") hasilBadge = `<span class="badge done">Diterima</span>`;
@@ -570,7 +576,10 @@ function detailModal(){
         ${video?`<a class="vid" href="${video}" target="_blank" style="display:flex;align-items:center;justify-content:center;background:var(--charcoal);color:#fff;border-radius:10px;width:90px;height:90px;font-size:26px;">▶</a>`:""}
       </div>
       ${renderPhotoGallery(foto)}
-      ${catatan?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);"><strong style="font-size:12px;">Catatan QHSE:</strong> <span class="freetext">${formatText(catatan)}</span><div style="color:var(--gray);font-size:11px;margin-top:2px;">— ${verifikator||"-"}, ${jsonToDate(tglVerif)}</div></div>`:""}
+      ${catatan?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);"><strong style="font-size:12px;">Catatan QHSE:</strong> <span class="freetext">${formatText(catatan)}</span><div style="color:var(--gray);font-size:11px;margin-top:2px;">— ${verifikator||"-"}, ${jsonToDate(tglVerif)}</div>
+        <div class="photo-row" style="margin-top:6px;">${videoVerif?`<a class="vid" href="${videoVerif}" target="_blank" style="display:flex;align-items:center;justify-content:center;background:var(--charcoal);color:#fff;border-radius:10px;width:90px;height:90px;font-size:26px;">▶</a>`:""}</div>
+        ${renderPhotoGallery(fotoVerif)}
+      </div>`:""}
     </div>`;
   }
   const evidence = historyHtml ? `<div class="section-label">Riwayat Perbaikan (${percobaanKe}/3 percobaan)</div>${historyHtml}` : "";
@@ -595,7 +604,10 @@ function detailModal(){
         ${d.Banding_Video_URL?`<a class="vid" href="${d.Banding_Video_URL}" target="_blank" style="display:flex;align-items:center;justify-content:center;background:var(--charcoal);color:#fff;border-radius:10px;width:90px;height:90px;font-size:26px;">▶</a>`:""}
       </div>
       ${renderPhotoGallery(d.Banding_Foto_URL)}
-      ${d.Banding_Catatan_QHSE?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);"><strong style="font-size:12px;">Catatan QHSE:</strong> <span class="freetext">${formatText(d.Banding_Catatan_QHSE)}</span><div style="color:var(--gray);font-size:11px;margin-top:2px;">— ${d.Banding_Verifikator||"-"}, ${jsonToDate(d.Banding_Tanggal_Verifikasi)}</div></div>`:""}
+      ${d.Banding_Catatan_QHSE?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);"><strong style="font-size:12px;">Catatan QHSE:</strong> <span class="freetext">${formatText(d.Banding_Catatan_QHSE)}</span><div style="color:var(--gray);font-size:11px;margin-top:2px;">— ${d.Banding_Verifikator||"-"}, ${jsonToDate(d.Banding_Tanggal_Verifikasi)}</div>
+        <div class="photo-row" style="margin-top:6px;">${d.Banding_Video_Verifikasi_URL?`<a class="vid" href="${d.Banding_Video_Verifikasi_URL}" target="_blank" style="display:flex;align-items:center;justify-content:center;background:var(--charcoal);color:#fff;border-radius:10px;width:90px;height:90px;font-size:26px;">▶</a>`:""}</div>
+        ${renderPhotoGallery(d.Banding_Foto_Verifikasi_URL)}
+      </div>`:""}
       ${d.Banding_Hasil==="Ditolak"?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);color:var(--red);font-size:12.5px;">Banding ditolak — silakan lanjut upload bukti perbaikan di bawah.</div>`:""}
     </div>`;
   }
@@ -678,6 +690,22 @@ function detailModal(){
     <div class="section-label">Verifikasi Perbaikan — Percobaan ke-${percobaanKe}</div>
     <div class="form-field"><label>Nama Verifikator</label><input type="text" id="v_nama" placeholder="Nama Anda"></div>
     <div class="form-field"><label>Catatan (wajib jika ditolak)</label><textarea id="v_catatan" placeholder="Catatan untuk PIC outlet..."></textarea></div>
+    <div class="form-field">
+      <label>Foto Bukti Pendukung (wajib min. 1 jika ditolak, opsional jika disetujui)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="file-drop" style="flex:1;min-width:100px;" id="dropFoto1" onclick="document.getElementById('f_foto1').click()">📷 Foto 1</div>
+        <div class="file-drop" style="flex:1;min-width:100px;" id="dropFoto2" onclick="document.getElementById('f_foto2').click()">📷 Foto 2</div>
+        <div class="file-drop" style="flex:1;min-width:100px;" id="dropFoto3" onclick="document.getElementById('f_foto3').click()">📷 Foto 3</div>
+      </div>
+      <input type="file" id="f_foto1" accept="image/*" style="display:none" onchange="handleFotoSlot(this,1)">
+      <input type="file" id="f_foto2" accept="image/*" style="display:none" onchange="handleFotoSlot(this,2)">
+      <input type="file" id="f_foto3" accept="image/*" style="display:none" onchange="handleFotoSlot(this,3)">
+    </div>
+    <div class="form-field">
+      <label>Video Bukti Pendukung (opsional)</label>
+      <div class="file-drop" id="dropVideo" onclick="document.getElementById('f_video').click()">🎥 Ketuk untuk pilih video</div>
+      <input type="file" id="f_video" accept="video/*" style="display:none" onchange="handleFile(this,'dropVideo','🎥')">
+    </div>
     <div class="btn-row">
       <button class="btn-reject" onclick="submitVerify('${d.ID}',false)">Tolak, Minta Ulang</button>
       <button class="btn-approve" onclick="submitVerify('${d.ID}',true)">Setujui &amp; Selesai</button>
@@ -692,6 +720,22 @@ function detailModal(){
     <div class="section-label">🏳️ Verifikasi Banding</div>
     <div class="form-field"><label>Nama Verifikator</label><input type="text" id="vb_nama" placeholder="Nama Anda"></div>
     <div class="form-field"><label>Catatan (wajib jika ditolak)</label><textarea id="vb_catatan" placeholder="Catatan untuk PIC outlet..."></textarea></div>
+    <div class="form-field">
+      <label>Foto Bukti Pendukung (wajib min. 1 jika ditolak, opsional jika diterima)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="file-drop" style="flex:1;min-width:100px;" id="dropFoto1" onclick="document.getElementById('f_foto1').click()">📷 Foto 1</div>
+        <div class="file-drop" style="flex:1;min-width:100px;" id="dropFoto2" onclick="document.getElementById('f_foto2').click()">📷 Foto 2</div>
+        <div class="file-drop" style="flex:1;min-width:100px;" id="dropFoto3" onclick="document.getElementById('f_foto3').click()">📷 Foto 3</div>
+      </div>
+      <input type="file" id="f_foto1" accept="image/*" style="display:none" onchange="handleFotoSlot(this,1)">
+      <input type="file" id="f_foto2" accept="image/*" style="display:none" onchange="handleFotoSlot(this,2)">
+      <input type="file" id="f_foto3" accept="image/*" style="display:none" onchange="handleFotoSlot(this,3)">
+    </div>
+    <div class="form-field">
+      <label>Video Bukti Pendukung (opsional)</label>
+      <div class="file-drop" id="dropVideo" onclick="document.getElementById('f_video').click()">🎥 Ketuk untuk pilih video</div>
+      <input type="file" id="f_video" accept="video/*" style="display:none" onchange="handleFile(this,'dropVideo','🎥')">
+    </div>
     <div class="btn-row">
       <button class="btn-reject" onclick="submitVerifyBanding('${d.ID}',false)">Tolak Banding</button>
       <button class="btn-approve" onclick="submitVerifyBanding('${d.ID}',true)">Terima &amp; Anulir Temuan</button>
@@ -801,13 +845,19 @@ async function submitPerbaikan(id){
 async function submitVerify(id, approved){
   const nama = document.getElementById('v_nama').value.trim();
   const catatan = document.getElementById('v_catatan').value.trim();
-  if(!approved && !catatan){
-    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Catatan wajib diisi jika perbaikan ditolak.</div>`;
+  const fotos = pendingFotos.filter(Boolean);
+  if(!nama){
+    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Nama verifikator wajib diisi.</div>`;
+    return;
+  }
+  if(!approved && (!catatan || fotos.length===0)){
+    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Kalau ditolak, catatan dan minimal 1 foto bukti pendukung wajib diisi.</div>`;
     return;
   }
   document.getElementById('formMsgBox').innerHTML = `<div class="msg" style="background:var(--amber-soft);color:var(--amber);">Menyimpan...</div>`;
-  const res = await postAction({action:"verify", id, approved, catatan, verifikator:nama});
+  const res = await postAction({action:"verify", id, approved, catatan, verifikator:nama, foto_base64_list:fotos, video_base64:pendingVideo});
   if(res.success){
+    pendingFotos=[null,null,null]; pendingVideo=null;
     await loadData();
     state.detailId = null;
     render();
@@ -849,13 +899,19 @@ async function submitBanding(id){
 async function submitVerifyBanding(id, approved){
   const nama = document.getElementById('vb_nama').value.trim();
   const catatan = document.getElementById('vb_catatan').value.trim();
-  if(!approved && !catatan){
-    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Catatan wajib diisi jika banding ditolak.</div>`;
+  const fotos = pendingFotos.filter(Boolean);
+  if(!nama){
+    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Nama verifikator wajib diisi.</div>`;
+    return;
+  }
+  if(!approved && (!catatan || fotos.length===0)){
+    document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Kalau banding ditolak, catatan dan minimal 1 foto bukti pendukung wajib diisi.</div>`;
     return;
   }
   document.getElementById('formMsgBox').innerHTML = `<div class="msg" style="background:var(--amber-soft);color:var(--amber);">Menyimpan...</div>`;
-  const res = await postAction({action:"verify_banding", id, approved, catatan, verifikator:nama});
+  const res = await postAction({action:"verify_banding", id, approved, catatan, verifikator:nama, foto_base64_list:fotos, video_base64:pendingVideo});
   if(res.success){
+    pendingFotos=[null,null,null]; pendingVideo=null;
     await loadData();
     state.detailId = null;
     render();
