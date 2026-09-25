@@ -195,7 +195,8 @@ let state = {
   qhseUnlocked: false,
   picUnlocked: false,
   pinError: "",
-  picActionMode: null
+  picActionMode: null,
+  isSubmitting: false
 };
 
 function jsonToDate(v){ return v ? String(v).slice(0,10) : ""; }
@@ -822,6 +823,7 @@ function removeVideoSlot(){
 }
 
 async function submitPerbaikan(id){
+  if(state.isSubmitting) return;
   const nama = document.getElementById('f_nama_pic').value.trim();
   const tanggal = document.getElementById('f_tanggal').value;
   const keterangan = document.getElementById('f_keterangan').value.trim();
@@ -830,8 +832,10 @@ async function submitPerbaikan(id){
     document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Nama PIC, keterangan, dan minimal 1 foto bukti wajib diisi.</div>`;
     return;
   }
+  state.isSubmitting = true;
   document.getElementById('formMsgBox').innerHTML = `<div class="msg" style="background:var(--amber-soft);color:var(--amber);">Mengirim data...</div>`;
   const res = await postAction({action:"update_perbaikan", id, nama_pic:nama, tanggal, keterangan, foto_base64_list:fotos, video_base64:pendingVideo});
+  state.isSubmitting = false;
   if(res.success){
     pendingFotos=[null,null,null]; pendingVideo=null;
     await loadData();
@@ -843,6 +847,7 @@ async function submitPerbaikan(id){
 }
 
 async function submitVerify(id, approved){
+  if(state.isSubmitting) return;
   const nama = document.getElementById('v_nama').value.trim();
   const catatan = document.getElementById('v_catatan').value.trim();
   const fotos = pendingFotos.filter(Boolean);
@@ -854,8 +859,10 @@ async function submitVerify(id, approved){
     document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Kalau ditolak, minimal 1 foto bukti pendukung wajib diisi.</div>`;
     return;
   }
+  state.isSubmitting = true;
   document.getElementById('formMsgBox').innerHTML = `<div class="msg" style="background:var(--amber-soft);color:var(--amber);">Menyimpan...</div>`;
   const res = await postAction({action:"verify", id, approved, catatan, verifikator:nama, foto_base64_list:fotos, video_base64:pendingVideo});
+  state.isSubmitting = false;
   if(res.success){
     pendingFotos=[null,null,null]; pendingVideo=null;
     await loadData();
@@ -875,6 +882,7 @@ function setPicActionMode(mode){
 }
 
 async function submitBanding(id){
+  if(state.isSubmitting) return;
   const nama = document.getElementById('b_nama_pic').value.trim();
   const tanggal = document.getElementById('b_tanggal').value;
   const alasan = document.getElementById('b_alasan').value.trim();
@@ -883,8 +891,10 @@ async function submitBanding(id){
     document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Nama PIC, alasan banding, dan minimal 1 foto bukti wajib diisi.</div>`;
     return;
   }
+  state.isSubmitting = true;
   document.getElementById('formMsgBox').innerHTML = `<div class="msg" style="background:var(--amber-soft);color:var(--amber);">Mengirim banding...</div>`;
   const res = await postAction({action:"submit_banding", id, nama_pic:nama, tanggal, alasan, foto_base64_list:fotos, video_base64:pendingVideo});
+  state.isSubmitting = false;
   if(res.success){
     pendingFotos=[null,null,null]; pendingVideo=null;
     await loadData();
@@ -897,6 +907,7 @@ async function submitBanding(id){
 }
 
 async function submitVerifyBanding(id, approved){
+  if(state.isSubmitting) return;
   const nama = document.getElementById('vb_nama').value.trim();
   const catatan = document.getElementById('vb_catatan').value.trim();
   const fotos = pendingFotos.filter(Boolean);
@@ -908,8 +919,10 @@ async function submitVerifyBanding(id, approved){
     document.getElementById('formMsgBox').innerHTML = `<div class="msg err">Kalau banding ditolak, minimal 1 foto bukti pendukung wajib diisi.</div>`;
     return;
   }
+  state.isSubmitting = true;
   document.getElementById('formMsgBox').innerHTML = `<div class="msg" style="background:var(--amber-soft);color:var(--amber);">Menyimpan...</div>`;
   const res = await postAction({action:"verify_banding", id, approved, catatan, verifikator:nama, foto_base64_list:fotos, video_base64:pendingVideo});
+  state.isSubmitting = false;
   if(res.success){
     pendingFotos=[null,null,null]; pendingVideo=null;
     await loadData();
