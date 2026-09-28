@@ -384,9 +384,15 @@ function findingCard(d){
   </div>`;
 }
 
-function filteredQhse(){
+function filteredByOutletQhse(){
   return state.data.filter(d=>{
     if(state.outletFilter && !(d.Nama_Outlet+" "+d.Nomor_Outlet).toLowerCase().includes(state.outletFilter.toLowerCase())) return false;
+    return true;
+  });
+}
+
+function filteredQhse(){
+  return filteredByOutletQhse().filter(d=>{
     if(state.statusFilter!=="all" && d.Status!==state.statusFilter) return false;
     return true;
   });
@@ -407,7 +413,7 @@ function renderQhse(){
     ${state.pinError?`<div class="msg err" style="margin-top:10px;">${state.pinError}</div>`:""}`;
   }
   const list = filteredQhse();
-  const s = stats(state.data);
+  const s = stats(filteredByOutletQhse());
   return `
   <div class="stats">
     <div class="stat"><div class="n">${s.total}</div><div class="l">Total Temuan</div></div>
