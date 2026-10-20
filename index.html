@@ -194,6 +194,8 @@ let state = {
   formMsg: "",
   qhseUnlocked: false,
   picUnlocked: false,
+  qhsePin: "",   // disimpan di memori saja (hilang saat halaman ditutup), dikirim ke server tiap aksi ubah-data
+  picPin: "",
   pinError: "",
   picActionMode: null,
   isSubmitting: false
@@ -306,13 +308,23 @@ async function postAction(payload){
     }
     return {success:true};
   }
+  // Aksi ubah-data wajib membawa PIN (server ikut memeriksa, bukan cuma tampilan ini)
+  const pinTarget = {update_perbaikan:"pic", submit_banding:"pic", verify:"qhse", verify_banding:"qhse"}[payload.action];
+  const withPin = pinTarget ? Object.assign({}, payload, {pin: pinTarget==="pic" ? state.picPin : state.qhsePin}) : payload;
   try{
     const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
       method:"POST",
       headers:{"Content-Type":"text/plain;charset=utf-8"}, // avoids CORS preflight on Apps Script
-      body: JSON.stringify(payload)
+      body: JSON.stringify(withPin)
     });
-    return await res.json();
+    const out = await res.json();
+    // PIN ditolak server (mis. PIN sudah diganti admin) -> kunci lagi, minta input PIN ulang
+    if(out && out.pin_invalid){
+      state.picUnlocked = false; state.qhseUnlocked = false;
+      state.picPin = ""; state.qhsePin = "";
+      state.pinError = "PIN tidak berlaku lagi. Masukkan PIN lagi.";
+    }
+    return out;
   }catch(err){
     return {success:false, error:"Gagal terhubung ke server."};
   }
@@ -521,7 +533,7 @@ async function verifyPin(target){
   render();
   const res = await postAction({action:"verify_pin", pin, target});
   if(res.success){
-    if(target === 'pic') state.picUnlocked = true; else state.qhseUnlocked = true;
+    if(target === 'pic'){ state.picUnlocked = true; state.picPin = pin; } else { state.qhseUnlocked = true; state.qhsePin = pin; }
     state.pinError = "";
   } else if(res.message && res.message.indexOf('Unknown action') > -1){
     state.pinError = "Server belum mengenali aksi 'verify_pin' — kemungkinan edit doPost belum ditambahkan/di-deploy ulang. Cek lagi PANDUAN-INTEGRASI.md bagian doPost.";
