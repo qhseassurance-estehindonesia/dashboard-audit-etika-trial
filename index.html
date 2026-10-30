@@ -187,6 +187,8 @@ let state = {
   loading: true,
   loadError: "",
   outletFilter: "",
+  provinsiFilter: "all",
+  kategoriKebunFilter: "all",
   statusFilter: "all",
   picOutletInput: "",
   picOutletActive: "",
@@ -391,14 +393,47 @@ function findingCard(d){
         ${riskBadge(d.Tingkat_Risiko)}
       </div>
     </div>
-    <div class="f-meta"><span>🏪 ${d.Nama_Outlet}</span><span>📅 ${jsonToDate(d.Tanggal_Audit)}</span><span>${d.Kategori_Temuan}</span></div>
+    <div class="f-meta"><span>🏪 ${d.Nama_Outlet}</span><span>📅 ${jsonToDate(d.Tanggal_Audit)}</span><span>${d.Kategori_Temuan}</span>${valProvinsi(d)?`<span>📍 ${valProvinsi(d)}</span>`:""}${valKategoriKebun(d)?`<span>🏷 ${valKategoriKebun(d)}</span>`:""}</div>
     ${stepperHtml(d.Status)}
   </div>`;
+}
+
+// ── Filter Provinsi & Kategori Kebun (halaman QHSE) ──
+const FILTER_KOSONG = "__kosong__";
+const KATEGORI_KEBUN_RESMI = ["Operate by Management","Operate by Mitra"];
+function escAttr(x){ return String(x).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+function valProvinsi(d){ return String(d.Provinsi||"").trim(); }
+function valKategoriKebun(d){ return String(d.Kategori_Kebun||"").trim(); }
+function cocokFilterAtribut(nilai, pilihan){
+  if(pilihan==="all") return true;
+  if(pilihan===FILTER_KOSONG) return nilai==="";
+  return nilai===pilihan;
+}
+function filterSelectHtml(id, semuaLabel, getter, terpilih, prop, opsiWajib){
+  const nilai = state.data.map(getter);
+  const opsi = Array.from(new Set((opsiWajib||[]).concat(nilai.filter(Boolean)))).sort((a,b)=>a.localeCompare(b,"id"));
+  if(terpilih!=="all" && terpilih!==FILTER_KOSONG && !opsi.includes(terpilih)) opsi.push(terpilih);
+  const adaKosong = nilai.some(v=>!v);
+  return `<select id="${id}" onchange="state.${prop}=this.value;render()">
+      <option value="all"${terpilih==="all"?" selected":""}>${semuaLabel}</option>
+      ${opsi.map(o=>`<option value="${escAttr(o)}"${terpilih===o?" selected":""}>${escAttr(o)}</option>`).join("")}
+      ${adaKosong?`<option value="${FILTER_KOSONG}"${terpilih===FILTER_KOSONG?" selected":""}>(Belum diisi)</option>`:""}
+    </select>`;
+}
+function adaFilterAktif(){
+  return !!state.outletFilter || state.statusFilter!=="all" || state.provinsiFilter!=="all" || state.kategoriKebunFilter!=="all";
+}
+function resetFilterQhse(){
+  state.outletFilter = ""; state.statusFilter = "all";
+  state.provinsiFilter = "all"; state.kategoriKebunFilter = "all";
+  render();
 }
 
 function filteredByOutletQhse(){
   return state.data.filter(d=>{
     if(state.outletFilter && !(d.Nama_Outlet+" "+d.Nomor_Outlet).toLowerCase().includes(state.outletFilter.toLowerCase())) return false;
+    if(!cocokFilterAtribut(valProvinsi(d), state.provinsiFilter)) return false;
+    if(!cocokFilterAtribut(valKategoriKebun(d), state.kategoriKebunFilter)) return false;
     return true;
   });
 }
@@ -439,10 +474,14 @@ function renderQhse(){
   </div>
   <div class="filters">
     <input type="text" id="qhseOutletFilter" placeholder="Cari outlet..." value="${state.outletFilter}" oninput="updateOutletFilter(this.value)">
+    ${filterSelectHtml("qhseProvinsiFilter","Semua Provinsi",valProvinsi,state.provinsiFilter,"provinsiFilter")}
+    ${filterSelectHtml("qhseKategoriKebunFilter","Semua Kategori Kebun",valKategoriKebun,state.kategoriKebunFilter,"kategoriKebunFilter",KATEGORI_KEBUN_RESMI)}
+    ${adaFilterAktif()?`<button onclick="resetFilterQhse()" style="border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 12px;font-size:13px;font-weight:600;color:var(--gray);">✕ Reset filter</button>`:""}
     <div class="pill-filter">
       ${["all","Open","Diperbaiki","Terverifikasi","Ditolak","Ditolak_Final","Menunggu_Banding","Dianulir"].map(st=>`<button class="${state.statusFilter===st?'active':''}" onclick="state.statusFilter='${st}';render()">${st==="all"?"Semua":STATUS_LABEL[st].label}</button>`).join("")}
     </div>
   </div>
+  ${adaFilterAktif()?`<div style="font-size:12.5px;color:var(--gray);margin:-6px 0 12px;">Menampilkan <b>${list.length}</b> dari ${state.data.length} temuan</div>`:""}
   <div class="list">
     ${list.length? list.map(findingCard).join("") : `<div class="empty"><div class="big">🍃</div>Tidak ada temuan yang cocok dengan filter.</div>`}
   </div>`;
@@ -774,6 +813,7 @@ function detailModal(){
       <div class="f-id mono">${d.ID} · ${d.Nomor_Outlet} · ${d.Nama_Outlet}</div>
       <h2>${d.Item_Checklist}</h2>
       <div class="sub">Audit ${jsonToDate(d.Tanggal_Audit)} oleh ${d.Nama_Auditor} · ${d.Kategori_Audit}</div>
+      ${(valProvinsi(d)||valKategoriKebun(d))?`<div class="sub" style="margin-top:-10px;">📍 ${valProvinsi(d)||"-"} · ${valKategoriKebun(d)||"-"}</div>`:""}
       <div style="display:flex;gap:6px;margin-bottom:10px;">${badgeHtml(d.Status)}${riskBadge(d.Tingkat_Risiko)}<span class="badge" style="background:var(--cream);color:var(--gray);">${d.Kategori_Temuan}</span></div>
       ${stepperHtml(d.Status)}
       <div class="section-label">Deskripsi Temuan</div>
